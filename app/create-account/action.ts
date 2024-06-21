@@ -1,6 +1,7 @@
 "use server"
 
 import { PASSWORD_MIN_LENGTH, PASSWORD_REGEX, PASSWORD_REGEX_ERROR } from "@/lib/constants";
+import db from "@/lib/db";
 import { z } from "zod"
 
 
@@ -11,6 +12,38 @@ import { z } from "zod"
 
 // const checkPassword = ({password, confirmPassword} : {password : string, confirmPassword : string}) => password === confirmPassword
 
+const checkUniqueUsername = async(username: string) => {
+  const user = await db.user.findUnique({
+    where: {
+      username: username,
+    },
+    select:{
+      id: true
+    }
+  })
+
+  // if(user){
+  //   return false
+  // }else{
+  //   return true
+  // }
+
+  return !Boolean(user)
+}
+
+const checkUniqueEmail = async(email : string)=>{
+  const user = await db.user.findUnique({
+    where: {
+      email : email
+    },
+    select :{
+    id: true
+  }
+  })
+
+  return !Boolean(email)
+}
+
 
 const formSchema = z.object({
     username : z.string({
@@ -19,19 +52,21 @@ const formSchema = z.object({
     })
     .toLowerCase()
     .trim()
-    .transform((username) => `oTo/ ${username}`)
+    // .transform((username) => `oTo/ ${username}`)
     .refine(
         (username) => !username.includes("potato"),
         "No potatoes allowed!"
-      ),
+      )
+      .refine(checkUniqueUsername, "This Username is already taken"),
       email: z.string().email().toLowerCase(),
       password: z
       .string()
       .min(PASSWORD_MIN_LENGTH)
-      .regex(
-        PASSWORD_REGEX,
-        PASSWORD_REGEX_ERROR
-      ),
+      // .regex(
+      //   PASSWORD_REGEX,
+      //   PASSWORD_REGEX_ERROR
+      // )
+      ,
     confirm_password: z.string().min(PASSWORD_MIN_LENGTH),
   })
   .superRefine(({ password, confirm_password }, ctx) => {
@@ -54,13 +89,13 @@ export default async function createAccount(preState:any, formData : FormData ){
         confirmPassword : formData.get("confirmPassword")
     }
 
-     const result = formSchema.safeParse(data)
+    const result = formSchema.safeParse(data)
      
     if(!result.success){  
         return result.error.flatten()
      }else{
-        console.log("여기 : ")
-        console.log(result.data)
-     }
+      // 입력받은 값이 이미 가입한 정보인지 확인
 
+
+     }
 }
